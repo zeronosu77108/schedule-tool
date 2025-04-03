@@ -3,26 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>週表示 空き時間選択 & マージ (Modern)</title>
-    <style>
+    <title>週表示 空き時間選択 & マージ (Modern / Custom)</title> <style>
         /* --- Base Styles & Variables --- */
         :root {
-            --primary-color: #007bff; /* アクセントカラー (ブルー系) */
+            --primary-color: #007bff;
             --primary-light: #e6f2ff;
             --primary-dark: #0056b3;
-            --select-bg: rgba(0, 123, 255, 0.3); /* ドラッグ中の背景 */
-            --selected-bg: #007bff; /* 選択確定後の背景 */
-            --selected-text: #ffffff; /* 選択確定後の文字色 */
+            --select-bg: rgba(0, 123, 255, 0.3);
+            --selected-bg: #007bff;
+            --selected-text: #ffffff;
             --light-gray: #f8f9fa;
             --medium-gray: #dee2e6;
             --dark-gray: #6c757d;
             --text-color: #212529;
             --border-color: #ced4da;
             --body-bg: #ffffff;
-            --slot-height: 35px; /* スロットの高さ */
-            --header-height: 30px; /* ヘッダーの高さ */
-            --time-label-width: 50px; /* 時間ラベルの幅 */
-            --border-radius: 0.3rem; /* 角丸 */
+            --slot-height: 35px;
+            --header-height: 30px;
+            --time-label-width: 50px;
+            --border-radius: 0.3rem;
+            /* *** 追加: 週末の背景色 *** */
+            --saturday-bg: #f0f8ff; /* AliceBlue - 薄い青 */
+            --sunday-bg: #fff0f0;   /* LavenderBlush or Seashell - 薄い赤系 */
         }
 
         body {
@@ -138,10 +140,23 @@
             flex: 1 1 100px; /* 基本幅100px、伸縮可能 */
             min-width: 80px; /* 最小幅 */
             border-left: 1px solid var(--border-color);
+            display: flex;           /* 列内をFlexboxレイアウトにする */
+            flex-direction: column;  /* 列内の要素（ヘッダー、スロット）を縦に並べる */
+            /* *** 追加: 週末のデフォルト背景色 (スロットより後ろ) *** */
+            background-color: #fff; /* デフォルト */
+            transition: background-color 0.3s ease; /* 色変更を滑らかに */
         }
-         .day-column:first-child {
+        /* *** 追加: 週末の列スタイル *** */
+        .day-column.saturday-column {
+             background-color: var(--saturday-bg);
+        }
+        .day-column.sunday-column {
+             background-color: var(--sunday-bg);
+        }
+        .day-column:first-child {
              border-left: none;
          }
+
 
         .day-header {
             text-align: center;
@@ -155,39 +170,48 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            flex-shrink: 0; /* ヘッダー高さ固定 */
         }
 
         .time-slot {
-            height: var(--slot-height);
-            border-top: 1px dotted var(--medium-gray); /* 30分ごとの線 */
-            box-sizing: border-box;
-            cursor: pointer;
-            position: relative;
-            transition: background-color 0.15s ease;
-        }
+             height: var(--slot-height);
+             border-top: 1px dotted var(--medium-gray); /* 30分ごとの線 */
+             box-sizing: border-box;
+             cursor: pointer;
+             position: relative;
+             transition: background-color 0.15s ease;
+             flex-shrink: 0; /* スロット高さ固定 */
+             /* *** 変更: スロット自体の背景は透明にして列の背景が見えるように */
+             background-color: transparent;
+         }
          .time-slot.hour-line { /* 時間ごとの線 (00分) */
              border-top: 1px solid var(--border-color);
          }
          .day-column .time-slot:first-child { /* 各列の最初のスロットの上線 */
-             border-top: none;
+            /* このスタイルは、ループ開始時刻が変わったため、不要または調整が必要になる可能性 */
+            /* border-top: none; */ /* 一旦コメントアウト */
          }
         .time-slot:hover {
-            background-color: rgba(0, 0, 0, 0.03); /* 軽いホバー色 */
+            /* *** 変更: ホバー時の背景も少し透明度を持たせる */
+            background-color: rgba(0, 0, 0, 0.05); /* 軽いホバー色 */
         }
 
         /* --- Selection Styles --- */
         .time-slot.selecting {
-            background-color: var(--select-bg);
+            /* *** 変更: 列の背景が少し見えるようにrgbaを使う */
+            background-color: rgba(0, 123, 255, 0.4); /* 半透明の選択中色 */
             border-color: transparent; /* 選択中は境界線を消すことも */
         }
         .time-slot.selected {
-            background-color: var(--selected-bg);
+            /* *** 変更: 列の背景が少し見えるようにrgbaを使うか、不透明度を下げる */
+            background-color: rgba(0, 123, 255, 0.85); /* 少し透明度のある選択色 */
+            /* background-color: var(--selected-bg); */ /* 完全に覆う場合 */
             border-color: var(--primary-dark); /* 選択境界色 */
-            color: var(--selected-text); /* 必要なら文字色変更 */
+            /* color: var(--selected-text); */ /* 背景が半透明の場合、文字色はデフォルトの方が良いかも */
         }
         /* 選択されているスロットのホバー */
          .time-slot.selected:hover {
-             background-color: var(--primary-dark);
+             background-color: rgba(0, 86, 179, 0.9); /* var(--primary-dark) のRGBA版 */
          }
 
 
@@ -301,22 +325,14 @@
         <h2>日程マージ</h2>
         <p>各参加者の空き日程 (上記形式) を貼り付けてください。<br>
            参加者ごとに <code>---</code> (ハイフン3つ) の行で区切ってください。</p>
-        <textarea id="merge-input" placeholder="参加者1の日程...
-4/11 10:00-19:00
-4/11 21:00-22:00
----
-参加者2の日程...
-4/11 14:00-22:00
-4/13 11:00-13:00
----
-参加者3の日程..."></textarea>
+        <textarea id="merge-input" placeholder="参加者1の日程...&#10;4/11 10:00-19:00&#10;---&#10;参加者2の日程..."></textarea>
         <button id="merge-button">全員の重複時間を検索</button>
         <h3>全員が共通して空いている時間:</h3>
         <div id="merge-result" class="result-area"></div>
     </div>
 
     <script>
-        // --- 要素取得 (変更なし) ---
+        // --- 要素取得 ---
         const calendarGrid = document.getElementById('calendar-grid');
         const timeLabels = document.getElementById('time-labels');
         const outputDiv = document.getElementById('output');
@@ -328,40 +344,46 @@
         const mergeButton = document.getElementById('merge-button');
         const mergeResultDiv = document.getElementById('merge-result');
 
-        // --- 定数・状態変数 (変更なし) ---
-        const hours = 24;
+
+        // --- 定数・状態変数 ---
+        const hoursTotal = 24; // 1日の総時間数 (計算用) - これは使わないかも
         const slotDurationMinutes = 30; // 30分単位
         const slotsPerHour = 60 / slotDurationMinutes;
         const daysToShow = 7;
+        // *** 追加: 表示時間帯 ***
+        const displayStartHour = 6; // 表示開始時間 (6時)
+        const displayEndHour = 24;  // 表示終了時間 (24時 = 23:59まで表示)
+
         let weekDates = [];
         let isDragging = false;
         let startSlot = null;
-        let selectedSlots = new Set();
+        let selectedSlots = new Set(); // 選択されたスロットID ("MM/DD_インデックス") を保持
         let referenceDateForWeek = new Date(); // Start with current date
 
-        // --- 初期化 (変更なし) ---
+
+        // --- 初期化 ---
         function initialize() {
-            createTimeLabels();
-            renderCalendarForReferenceDate();
-            addEventListeners();
-            addNavigationListeners();
-            addMergeListeners();
-            updateOutput(); // Initial output update
+            createTimeLabels(); // 時間ラベル生成
+            renderCalendarForReferenceDate(); // 初期カレンダー描画
+            addEventListeners(); // ドラッグ選択などのリスナー
+            addNavigationListeners(); // 週移動ボタンのリスナー
+            addMergeListeners(); // マージボタンのリスナー
+            updateOutput(); // 初期出力表示 (空のはず)
         }
 
         // --- 週移動・カレンダー描画関連 ---
         function renderCalendarForReferenceDate() {
-            setupWeekDates();
-            createCalendarGrid(); // Re-render grid which checks selectedSlots
+            setupWeekDates(); // 表示する週の日付を計算・設定
+            createCalendarGrid(); // 新しい日付でカレンダーグリッドを再描画
         }
 
         function setupWeekDates() {
             const refDate = new Date(referenceDateForWeek);
             const currentDayOfWeek = refDate.getDay(); // 0 (Sun) - 6 (Sat)
-            const diffToMonday = currentDayOfWeek === 0 ? -6 : 1 - currentDayOfWeek;
+            const diffToMonday = currentDayOfWeek === 0 ? -6 : 1 - currentDayOfWeek; // 月曜を週の開始とする
             const monday = new Date(refDate);
             monday.setDate(refDate.getDate() + diffToMonday);
-            monday.setHours(0, 0, 0, 0); // Normalize to start of the day
+            monday.setHours(0, 0, 0, 0); // 日付の変わり目を0時に正規化
 
             weekDates = [];
             for (let i = 0; i < daysToShow; i++) {
@@ -371,7 +393,12 @@
             }
         }
 
+        // --- 日付・時間フォーマット ---
         function formatDate(date) {
+            // 無効な日付オブジェクトの場合、エラーを防ぐ
+            if (!(date instanceof Date) || isNaN(date.getTime())) {
+                return "??/??"; // または他のエラー表示
+            }
             const m = (date.getMonth() + 1).toString().padStart(2, '0');
             const d = date.getDate().toString().padStart(2, '0');
             return `${m}/${d}`;
@@ -381,27 +408,28 @@
             return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
         }
 
+        // --- カレンダー要素生成 ---
         function createTimeLabels() {
             timeLabels.innerHTML = ''; // Clear previous labels
             const headerSpacer = document.createElement('div'); // Spacer for day header height
             timeLabels.appendChild(headerSpacer);
 
-            for (let hour = 0; hour < hours; hour++) {
-                 // Main hour label
+            // Loop through the hours to display
+            for (let hour = displayStartHour; hour < displayEndHour; hour++) {
+                // Main hour label (e.g., 6:00, 7:00)
                 const hourLabelDiv = document.createElement('div');
-                hourLabelDiv.classList.add('label-hour'); // Style hour marks differently
+                hourLabelDiv.classList.add('label-hour');
                 hourLabelDiv.textContent = `${hour}:00`;
                 timeLabels.appendChild(hourLabelDiv);
 
-                // Intermediate slots (e.g., for :30)
+                // Intermediate slots (e.g., for 6:30, 7:30)
                 for (let i = 1; i < slotsPerHour; i++) {
                     const slotSpacer = document.createElement('div');
-                    // Optionally add ':30' label here if needed
+                    // Optionally add ':30' text content here if needed
                     timeLabels.appendChild(slotSpacer);
                 }
             }
         }
-
 
         function createCalendarGrid() {
             calendarGrid.innerHTML = ''; // Clear previous grid
@@ -410,34 +438,46 @@
                 dayColumn.classList.add('day-column');
                 dayColumn.dataset.dayIndex = dayIndex;
 
+                // Add Saturday/Sunday classes
+                const dayOfWeek = date.getDay(); // 0=Sun, 6=Sat
+                if (dayOfWeek === 6) {
+                    dayColumn.classList.add('saturday-column');
+                } else if (dayOfWeek === 0) {
+                    dayColumn.classList.add('sunday-column');
+                }
+
+                // Create Day Header
                 const dayHeader = document.createElement('div');
                 dayHeader.classList.add('day-header');
-                 // Include year in header for clarity if spanning years? Optional.
-                dayHeader.textContent = `${formatDate(date)} (${['日','月','火','水','木','金','土'][date.getDay()]})`;
+                dayHeader.textContent = `${formatDate(date)} (${['日','月','火','水','木','金','土'][dayOfWeek]})`;
                 dayColumn.appendChild(dayHeader);
 
-                for (let hour = 0; hour < hours; hour++) {
+                // Create Time Slots for the display range
+                for (let hour = displayStartHour; hour < displayEndHour; hour++) {
                     for (let minuteStep = 0; minuteStep < slotsPerHour; minuteStep++) {
                         const minute = minuteStep * slotDurationMinutes;
                         const timeSlot = document.createElement('div');
                         timeSlot.classList.add('time-slot');
 
-                         // Add class for hour line styling
+                        // Add class for hour line styling (00 minutes)
                         if (minute === 0) {
                              timeSlot.classList.add('hour-line');
                         }
 
+                        // Calculate slotIndex based on 0-23 hours for data consistency
                         const slotIndex = hour * slotsPerHour + minuteStep;
-                        const slotDateStr = formatDate(date); // Use date for this specific slot
-                        const slotId = `${slotDateStr}_${slotIndex}`; // Unique ID: "MM/DD_index"
-                        timeSlot.dataset.slotId = slotId;
-                        timeSlot.dataset.date = slotDateStr; // Store MM/DD
-                        timeSlot.dataset.hour = hour;
-                        timeSlot.dataset.minute = minute;
-                        timeSlot.dataset.dayIndex = dayIndex; // Column index
-                        timeSlot.dataset.slotIndex = slotIndex; // Row index (within day)
+                        const slotDateStr = formatDate(date);
+                        const slotId = `${slotDateStr}_${slotIndex}`; // Unique ID: "MM/DD_index" (0-based index)
 
-                        // Restore selection state
+                        // Set data attributes for interaction and styling
+                        timeSlot.dataset.slotId = slotId;
+                        timeSlot.dataset.date = slotDateStr; // MM/DD
+                        timeSlot.dataset.hour = hour;      // Hour this slot represents (6-23)
+                        timeSlot.dataset.minute = minute;    // Minute this slot represents (0, 30)
+                        timeSlot.dataset.dayIndex = dayIndex;  // Column index (0-6)
+                        timeSlot.dataset.slotIndex = slotIndex;// Absolute index (0-47 or similar, 0-based from midnight)
+
+                        // Restore selection state if this slot ID is in the Set
                         if (selectedSlots.has(slotId)) {
                             timeSlot.classList.add('selected');
                         }
@@ -453,8 +493,7 @@
         function addEventListeners() {
             calendarGrid.addEventListener('mousedown', handleMouseDown);
             calendarGrid.addEventListener('mousemove', handleMouseMove);
-            // Mouse up anywhere on the document should stop dragging
-            document.addEventListener('mouseup', handleMouseUp);
+            document.addEventListener('mouseup', handleMouseUp); // Listen on document for mouseup outside grid
         }
 
         function addNavigationListeners() {
@@ -473,50 +512,37 @@
         }
 
         function handleMouseDown(event) {
-            // Only start dragging if a time slot was clicked
             if (event.target.classList.contains('time-slot')) {
                 isDragging = true;
                 startSlot = event.target;
-                // Clear any previous 'selecting' highlights
                 clearSelectingHighlight();
-                // Mark the starting slot as 'selecting'
                 toggleSelecting(startSlot);
-                event.preventDefault(); // Prevent text selection during drag
+                event.preventDefault(); // Prevent default text selection behavior
             }
         }
 
         function handleMouseMove(event) {
             if (!isDragging || !startSlot) return;
-
-            // If moving over a valid time slot
             if (event.target.classList.contains('time-slot')) {
-                // Clear previous 'selecting' highlights and highlight the new range
-                clearSelectingHighlight();
-                highlightRange(startSlot, event.target);
+                clearSelectingHighlight(); // Clear previous highlights
+                highlightRange(startSlot, event.target); // Highlight current range
             }
             event.preventDefault();
         }
 
         function handleMouseUp(event) {
-            if (!isDragging) return; // Only act if we were dragging
-
+            if (!isDragging) return;
             isDragging = false;
-            const endSlot = event.target.classList.contains('time-slot') ? event.target : null; // Check if mouse up happened over a slot
-
-            // Apply the selection based on the drag range
-            applySelection(startSlot, endSlot);
-
-            // Clean up temporary 'selecting' highlights
-            clearSelectingHighlight();
-            // Update the output text area
-            updateOutput();
-            startSlot = null; // Reset starting slot
+            const endSlot = event.target.classList.contains('time-slot') ? event.target : null;
+            applySelection(startSlot, endSlot); // Apply selection changes
+            clearSelectingHighlight(); // Remove temporary highlights
+            updateOutput(); // Update the text output area
+            startSlot = null; // Reset drag start
         }
 
         // --- 選択ロジック (Selection Logic) ---
          function toggleSelecting(slot) {
-             // Always add 'selecting' class when starting drag
-             slot.classList.add('selecting');
+             slot.classList.add('selecting'); // Indicate visually during drag
          }
 
          function clearSelectingHighlight() {
@@ -524,44 +550,39 @@
          }
 
          function highlightRange(start, end) {
-             if (!start || !end) return; // Need both start and end
-
-             // Get coordinates (day index, slot index)
+             if (!start || !end) return;
              const startDay = parseInt(start.dataset.dayIndex);
              const endDay = parseInt(end.dataset.dayIndex);
+             // Use the 0-based slotIndex for range calculation
              const startIndex = parseInt(start.dataset.slotIndex);
              const endIndex = parseInt(end.dataset.slotIndex);
 
-             // Determine the rectangle bounds for highlighting
              const minDay = Math.min(startDay, endDay);
              const maxDay = Math.max(startDay, endDay);
              const minIndex = Math.min(startIndex, endIndex);
              const maxIndex = Math.max(startIndex, endIndex);
 
-             // Iterate through the rectangle and add 'selecting' class
              for (let d = minDay; d <= maxDay; d++) {
-                 // Get the column element for the day
-                 // Note: calendarGrid's children are the day columns directly now
                  const column = calendarGrid.children[d];
-                  if (!column) continue; // Safety check
-                 // Find slots within the time range in this column
+                  if (!column) continue;
+                 // Iterate only through the displayed slots if needed? No, use index.
                  for (let i = minIndex; i <= maxIndex; i++) {
-                     // Find the specific slot using data attributes
-                     const slot = column.querySelector(`[data-slot-index='${i}']`);
-                     if (slot) {
-                         slot.classList.add('selecting');
+                     // Check if this index corresponds to a displayed hour
+                     const hourOfIndex = Math.floor(i / slotsPerHour);
+                     if (hourOfIndex >= displayStartHour) {
+                        const slot = column.querySelector(`[data-slot-index='${i}']`);
+                        if (slot) {
+                            slot.classList.add('selecting');
+                        }
                      }
                  }
              }
          }
 
         function applySelection(start, end) {
-            if (!start) return; // Must have a starting point
-
-            // Determine the range of slots affected by the drag
+            if (!start) return;
              const slotsToToggle = [];
              const startDay = parseInt(start.dataset.dayIndex);
-             // If mouseup outside grid, use start slot as end
              const endDay = end ? parseInt(end.dataset.dayIndex) : startDay;
              const startIndex = parseInt(start.dataset.slotIndex);
              const endIndex = end ? parseInt(end.dataset.slotIndex) : startIndex;
@@ -575,34 +596,60 @@
                  const column = calendarGrid.children[d];
                   if (!column) continue;
                  for (let i = minIndex; i <= maxIndex; i++) {
-                     const slot = column.querySelector(`[data-slot-index='${i}']`);
-                     if (slot) {
-                         slotsToToggle.push(slot);
-                     }
+                     // Apply only to displayed slots if needed? No, data is 0-based.
+                     const hourOfIndex = Math.floor(i / slotsPerHour);
+                     // We store based on 0-based index, so always find the element if it exists
+                     // (it might not exist visually if before displayStartHour, but that's ok for data)
+                      const slotElement = column.querySelector(`[data-slot-index='${i}']`);
+                      // Only toggle visible elements visually, but update data for all
+                      if (slotElement) { // Only push if the element exists in the DOM
+                          slotsToToggle.push(slotElement);
+                      }
                  }
              }
 
-            // Determine if we are selecting or deselecting based on the start slot's state
+            // Determine action based on the starting slot's state
             const shouldSelect = !start.classList.contains('selected');
 
-            // Apply the change (select or deselect) to all affected slots
+            // Apply state change to elements and update the data Set
             slotsToToggle.forEach(slot => {
-                const slotId = slot.dataset.slotId; // Get the unique "MM/DD_index" ID
+                const slotId = slot.dataset.slotId; // Get the ID ("MM/DD_index")
                 if (shouldSelect) {
                     slot.classList.add('selected');
-                    selectedSlots.add(slotId); // Add ID to our Set
+                    selectedSlots.add(slotId); // Add to data Set
                 } else {
                     slot.classList.remove('selected');
-                    selectedSlots.delete(slotId); // Remove ID from our Set
+                    selectedSlots.delete(slotId); // Remove from data Set
                 }
             });
+             // Also need to update data Set for non-visible elements if drag spans them
+             // Iterate through index range again, but only update Set
+             for (let d = minDay; d <= maxDay; d++) {
+                 for (let i = minIndex; i <= maxIndex; i++) {
+                      const hourOfIndex = Math.floor(i / slotsPerHour);
+                      // Find corresponding date string based on day index d
+                      const currentDateStr = formatDate(weekDates[d]);
+                      const slotId = `${currentDateStr}_${i}`;
+
+                      // Check if this slot is NOT in the visible elements already processed
+                      const elementExists = slotsToToggle.some(el => el.dataset.slotId === slotId);
+
+                      if (!elementExists && hourOfIndex < displayStartHour) { // Only update data for hidden slots
+                           if (shouldSelect) {
+                               selectedSlots.add(slotId);
+                           } else {
+                               selectedSlots.delete(slotId);
+                           }
+                      }
+                 }
+             }
         }
 
         // --- 出力生成 (Output Generation) ---
         function updateOutput() {
             const lines = [];
             if (selectedSlots.size === 0) {
-                outputDiv.textContent = 'カレンダーで空き時間を選択してください'; // More descriptive
+                outputDiv.textContent = 'カレンダーで空き時間を選択してください';
                 return;
             }
 
@@ -610,32 +657,36 @@
             const sortedSlots = Array.from(selectedSlots)
                 .map(slotId => {
                     const [dateStr, indexStr] = slotId.split('_');
+                    if (!dateStr || !indexStr) return null; // Basic validation
                     const index = parseInt(indexStr);
-                    const hour = Math.floor(index / slotsPerHour);
-                    const minute = (index % slotsPerHour) * slotDurationMinutes;
+                    if (isNaN(index)) return null; // Basic validation
+
+                    const hour = Math.floor(index / slotsPerHour); // 0-23 hour
+                    const minute = (index % slotsPerHour) * slotDurationMinutes; // 0, 30
                     const [m, d] = dateStr.split('/').map(Number);
 
-                    // Attempt to get the correct year for the Date object
-                    let year = new Date().getFullYear(); // Default to current year
-                    // Try to find the date in the currently displayed weekDates for a more accurate year
+                    if (isNaN(m) || isNaN(d)) return null; // Basic validation
+
+                    let year = new Date().getFullYear(); // Default year
+                    // Find matching date in weekDates to get correct year
                     const matchingDate = weekDates.find(wd => formatDate(wd) === dateStr);
                     if (matchingDate) {
                         year = matchingDate.getFullYear();
-                    } // If not found (e.g., selection from a previous week), uses current year (potential issue on year boundaries)
+                    }
 
-                    const startDateTime = new Date(year, m - 1, d, hour, minute); // month is 0-indexed
-                    // Calculate end time based on duration
+                    const startDateTime = new Date(year, m - 1, d, hour, minute);
                     const endDateTime = new Date(startDateTime.getTime() + slotDurationMinutes * 60000);
 
-                     // Return null for invalid dates to filter out later
                      if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
                          console.warn(`Invalid date created for slotId: ${slotId}`);
-                         return null;
+                         return null; // Invalid date parsed
                      }
+                    // Filter out slots before display start time IF desired for output
+                    // if (hour < displayStartHour) return null; // Uncomment to hide early hours in output
 
                     return { dateStr, index, startDateTime, endDateTime };
                 })
-                 .filter(slot => slot !== null) // Remove any invalid date entries
+                 .filter(slot => slot !== null) // Remove nulls from parsing errors or filters
                 .sort((a, b) => a.startDateTime - b.startDateTime); // Sort chronologically
 
             if (sortedSlots.length === 0) {
@@ -647,69 +698,42 @@
             let currentBlock = null;
             for (const slot of sortedSlots) {
                 if (currentBlock === null) {
-                    // Start the first block
                     currentBlock = { start: slot.startDateTime, end: slot.endDateTime };
                 } else {
-                    // Check if current slot immediately follows the previous block
                     if (currentBlock.end.getTime() === slot.startDateTime.getTime()) {
-                        // Extend the current block
-                        currentBlock.end = slot.endDateTime;
+                        currentBlock.end = slot.endDateTime; // Extend block
                     } else {
-                        // Discontinuity: finalize the previous block and start a new one
-                        lines.push(formatBlock(currentBlock));
-                        currentBlock = { start: slot.startDateTime, end: slot.endDateTime };
+                        lines.push(formatBlock(currentBlock)); // Finalize previous block
+                        currentBlock = { start: slot.startDateTime, end: slot.endDateTime }; // Start new block
                     }
                 }
             }
-            // Add the last block if it exists
             if (currentBlock) {
-                lines.push(formatBlock(currentBlock));
+                lines.push(formatBlock(currentBlock)); // Add the last block
             }
 
             outputDiv.textContent = lines.join('\n');
         }
 
-        // Format a time block {start: Date, end: Date} into "MM/DD HH:MM-HH:MM"
         function formatBlock(block) {
              const startDateStr = formatDate(block.start);
              const startTimeStr = formatTime(block.start.getHours(), block.start.getMinutes());
-             // Handle midnight correctly (show 24:00 if end is exactly midnight next day?) - simpler: show 00:00 of next day if needed
-             const endHour = block.end.getHours();
-             const endMinute = block.end.getMinutes();
-             let endTimeStr = formatTime(endHour, endMinute);
-
-             // Special case: If end time is 00:00, maybe show 24:00 of the *previous* day for clarity?
-             // Example: 23:30-00:00 (next day) could be shown as 23:30-24:00
-             const startDay = block.start.getDate();
-             const endDay = block.end.getDate();
-             if (endHour === 0 && endMinute === 0 && endDay !== startDay) {
-                  // Check if it's exactly one day difference. If so, consider showing 24:00
-                  // This adds complexity, sticking to 00:00 for now.
-             }
-
-             // If block spans across midnight, indicate the end date? Optional.
-             // const endDateStr = formatDate(block.end);
-             // if (startDateStr !== endDateStr) {
-             //    return `${startDateStr} ${startTimeStr} - ${endDateStr} ${endTimeStr}`;
-             // }
-
+             const endTimeStr = formatTime(block.end.getHours(), block.end.getMinutes());
              return `${startDateStr} ${startTimeStr}-${endTimeStr}`;
         }
 
-        // --- クリップボードコピー (Clipboard Copy) ---
+        // --- クリップボードコピー ---
         copyButton.addEventListener('click', () => {
             const textToCopy = outputDiv.textContent;
             if (textToCopy && !textToCopy.startsWith('カレンダーで') && !textToCopy.startsWith('有効な時間')) {
                 navigator.clipboard.writeText(textToCopy)
                     .then(() => {
-                        // Optional: Show temporary success message
                         const originalText = copyButton.textContent;
                         copyButton.textContent = 'コピー完了!';
                         copyButton.style.backgroundColor = '#28a745'; // Success green
                         setTimeout(() => {
                              copyButton.textContent = originalText;
-                             // ↓↓↓ 修正後 ↓↓↓
-                             copyButton.style.backgroundColor = 'var(--dark-gray)'; // 文字列として指定
+                             copyButton.style.backgroundColor = 'var(--dark-gray)'; // Revert style using string
                          }, 1500);
                     })
                     .catch(err => {
@@ -721,40 +745,26 @@
             }
         });
 
-        // --- マージ機能 (Merge Functionality) ---
+        // --- マージ機能 ---
         function addMergeListeners() {
             mergeButton.addEventListener('click', handleMerge);
         }
 
         function handleMerge() {
             const inputText = mergeInput.value.trim();
-            mergeResultDiv.textContent = ''; // Clear previous results
+            mergeResultDiv.textContent = '';
             if (!inputText) {
                 mergeResultDiv.textContent = "比較する日程をテキストエリアに入力してください。";
                 return;
             }
-
             try {
                 const participantsIntervals = parseMergeInput(inputText);
-
-                if (participantsIntervals.length === 0) {
-                     mergeResultDiv.textContent = "有効な日程データが見つかりませんでした。参加者ごとに '---' で区切られているか確認してください。";
+                if (participantsIntervals.length < 2) { // Also handles case where parsing failed and returned empty array effectively
+                     mergeResultDiv.textContent = "比較するには少なくとも2人分の日程が必要です。参加者ごとに '---' で区切ってください。";
                      return;
-                }
-                 if (participantsIntervals.length === 1) {
-                     mergeResultDiv.textContent = "少なくとも2人分の日程が必要です。参加者ごとに '---' で区切ってください。";
-                     return; // Need at least two participants to compare
                  }
-                 // Check if any participant has empty intervals after parsing
-                 if (participantsIntervals.some(intervals => intervals.length === 0)) {
-                     console.warn("一部の参加者の日程が空または解析不能でした。");
-                     // Optionally inform the user, or proceed with those who have data.
-                 }
-
-
                 const overlaps = findOverlaps(participantsIntervals);
                 displayMergeResult(overlaps);
-
             } catch (e) {
                 console.error("マージ処理エラー:", e);
                 mergeResultDiv.textContent = `エラーが発生しました。\n${e.message}\n入力形式 (MM/DD HH:MM-HH:MM と区切り文字 ---) を確認してください。`;
@@ -762,148 +772,126 @@
         }
 
         function parseMergeInput(text) {
-            // Split by '---' separator line
-             // Handles various line endings (\n, \r\n) around the separator
-            const participantsData = text.split(/^\s*---\s*$/m);
+            const participantsData = text.split(/^\s*---\s*$/m); // Split by '---' line
             const allIntervals = [];
-
-            // Use the year from the currently viewed week for consistency
-            const currentYear = referenceDateForWeek.getFullYear();
+            const currentYear = referenceDateForWeek.getFullYear(); // Use year from displayed week
 
             for (const participantText of participantsData) {
+                if (!participantText.trim()) continue; // Skip empty sections between '---'
+
                 const lines = participantText.trim().split('\n');
                 const participantIntervals = [];
-                // Regex to capture MM/DD HH:MM-HH:MM format
                 const lineRegex = /(\d{1,2}\/\d{1,2})\s+(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/;
 
                 for (const line of lines) {
                     const trimmedLine = line.trim();
-                    // Ignore empty lines or lines likely containing comments/headers
                     if (!trimmedLine || trimmedLine.startsWith('#') || trimmedLine.startsWith('//') || trimmedLine.startsWith('参加者')) continue;
 
                     const match = trimmedLine.match(lineRegex);
                     if (match) {
-                        const dateStr = match[1]; // "MM/DD"
-                        const startTimeStr = match[2]; // "HH:MM"
-                        const endTimeStr = match[3]; // "HH:MM"
-
+                        const dateStr = match[1];
+                        const startTimeStr = match[2];
+                        const endTimeStr = match[3];
                         const [month, day] = dateStr.split('/').map(Number);
                         const [startHour, startMinute] = startTimeStr.split(':').map(Number);
                         const [endHour, endMinute] = endTimeStr.split(':').map(Number);
 
-                        // Validate parsed numbers before creating Date
                         if ([month, day, startHour, startMinute, endHour, endMinute].some(isNaN)) {
-                             console.warn("数値への変換に失敗:", trimmedLine);
-                             continue;
+                             console.warn("数値への変換に失敗:", trimmedLine); continue;
                          }
 
-                        // Create Date objects using the determined year
-                        // Note: month is 0-indexed for Date constructor
                         const startDate = new Date(currentYear, month - 1, day, startHour, startMinute);
                         let endDate = new Date(currentYear, month - 1, day, endHour, endMinute);
 
-                        // Handle overnight times (e.g., 22:00-02:00) - basic check
-                        if (endDate <= startDate) {
-                             // Assumes it crosses midnight into the next day
-                             endDate.setDate(endDate.getDate() + 1);
-                         }
-
-                        // Final check for invalid dates (e.g., Feb 30th)
+                        if (endDate <= startDate) { endDate.setDate(endDate.getDate() + 1); }
                         if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-                            console.warn("無効な日付オブジェクト:", trimmedLine, "->", startDate, endDate);
-                            continue; // Skip this invalid entry
+                            console.warn("無効な日付オブジェクト:", trimmedLine); continue;
                         }
-
                         participantIntervals.push({ start: startDate, end: endDate });
-                    } else if (trimmedLine) {
-                        // Warn if a non-empty line didn't match the expected format
+                    } else {
                         console.warn("解析できない行 (無視します):", trimmedLine);
                     }
                 }
-                 // Only add participant if they have valid intervals parsed
                 if (participantIntervals.length > 0) {
                     allIntervals.push(participantIntervals);
                 }
             }
-            return allIntervals; // Array of arrays: [[p1_intervals], [p2_intervals], ...]
+            return allIntervals;
         }
 
 
         function findOverlaps(participantsIntervals) {
-            const numParticipants = participantsIntervals.length;
-            if (numParticipants < 2) return []; // Cannot find overlap with less than 2
+             const numParticipants = participantsIntervals.length;
+             if (numParticipants < 2) return [];
 
-            const events = [];
-            // Create start and end event points for all intervals
-            participantsIntervals.forEach(intervals => {
-                intervals.forEach(interval => {
-                    if (interval.end > interval.start) { // Only process valid intervals
-                        events.push({ time: interval.start, type: 'start' });
-                        events.push({ time: interval.end, type: 'end' });
-                    }
-                });
-            });
-
-            // Sort events: time ascending, then 'start' before 'end' for same time
-            events.sort((a, b) => {
-                const timeDiff = a.time.getTime() - b.time.getTime();
-                if (timeDiff !== 0) return timeDiff;
-                // If times are equal, 'start' comes first (-1), 'end' comes second (1)
-                return a.type === 'start' ? -1 : 1;
-            });
-
-            const commonIntervals = [];
-            let overlapCount = 0;
-            let overlapStartTime = null;
-
-            for (let i = 0; i < events.length; i++) {
-                const event = events[i];
-                const currentTime = event.time;
-                let prevOverlapCount = overlapCount;
-
-                // Update count based on event type
-                if (event.type === 'start') {
-                    overlapCount++;
-                } else { // 'end'
-                    overlapCount--;
-                }
-
-                // Check for state changes *after* processing the event at currentTime
-                // BUT, need to consider multiple events at the *exact same time*
-
-                 // Look ahead: process all events at the exact same time together
-                 let nextEventIndex = i + 1;
-                 while (nextEventIndex < events.length && events[nextEventIndex].time.getTime() === currentTime.getTime()) {
-                     const nextEvent = events[nextEventIndex];
-                     if (nextEvent.type === 'start') {
-                         overlapCount++;
-                     } else {
-                         overlapCount--;
+             const events = [];
+             participantsIntervals.forEach(intervals => {
+                 intervals.forEach(interval => {
+                     if (interval.end > interval.start) {
+                         events.push({ time: interval.start, type: 'start' });
+                         events.push({ time: interval.end, type: 'end' });
                      }
-                     i++; // Consume this event as well
-                     nextEventIndex++;
+                 });
+             });
+
+             events.sort((a, b) => {
+                 const timeDiff = a.time.getTime() - b.time.getTime();
+                 if (timeDiff !== 0) return timeDiff;
+                 return a.type === 'start' ? -1 : 1; // start before end at same time
+             });
+
+             const commonIntervals = [];
+             let overlapCount = 0;
+             let overlapStartTime = null;
+
+             for (let i = 0; i < events.length; ) { // Manual increment inside loop
+                 const currentTime = events[i].time;
+                 let timeSliceEnd = currentTime; // End of this time point processing
+
+                 // Process all events at the exact same time
+                 let countChangeAtThisTime = 0;
+                 letstartIndex = i;
+                 while (i < events.length && events[i].time.getTime() === currentTime.getTime()) {
+                      if (events[i].type === 'start') {
+                           countChangeAtThisTime++;
+                      } else {
+                           countChangeAtThisTime--;
+                      }
+                      i++; // Move to the next event
+                 }
+                 // The time for the next distinct event (if any)
+                 if (i < events.length) {
+                      timeSliceEnd = events[i].time;
                  }
 
+                 const prevOverlapCount = overlapCount; // Count before applying changes at this time
+                 overlapCount += countChangeAtThisTime; // Apply cumulative change
 
-                // Now evaluate the state change after processing all events at currentTime
-                // Did an overlap start? (count reached N, was less than N before this time)
+                 // Evaluate state change *after* processing all events at currentTime
+                 // Overlap started? (Became N, was less than N before)
                  if (overlapCount === numParticipants && prevOverlapCount < numParticipants) {
                      overlapStartTime = currentTime;
                  }
-                 // Did an overlap end? (count is now less than N, was N before this time)
+                 // Overlap ended? (Was N, now less than N)
                  else if (overlapCount < numParticipants && prevOverlapCount === numParticipants) {
-                     // Record the interval if start time is valid and end>start
                      if (overlapStartTime !== null && currentTime > overlapStartTime) {
                          commonIntervals.push({ start: overlapStartTime, end: currentTime });
                      }
-                     overlapStartTime = null; // Reset start time
+                     overlapStartTime = null;
+                 }
+                 // Special case: If an interval starts and ends exactly when count is N (point overlap)
+                 // This is handled by the above logic, as count becomes N then immediately < N.
+
+                 // If currently in overlap (count is N), and there's a time gap before the next event
+                 if (overlapCount === numParticipants && overlapStartTime !== null && timeSliceEnd > currentTime) {
+                    // The overlap continues until the next event time `timeSliceEnd`
+                    // We record the segment when the overlap *ends* or when processing loop finishes
                  }
 
-                 prevOverlapCount = overlapCount; // Update prev count for the next distinct time
-            }
+             } // End of event loop
 
-            return commonIntervals;
-        }
+             return commonIntervals;
+         }
 
 
         function displayMergeResult(overlaps) {
@@ -911,34 +899,32 @@
                 mergeResultDiv.textContent = "全員が共通して空いている時間はありませんでした。";
                 return;
             }
-             // Merge adjacent/overlapping result blocks for cleaner output
+             // Merge adjacent/overlapping result blocks
              const mergedOverlaps = [];
              if (overlaps.length > 0) {
-                 // Sort just in case (though findOverlaps should produce sorted output)
-                 overlaps.sort((a, b) => a.start - b.start);
-                 let currentMerged = { ...overlaps[0] }; // Copy first block
-
+                 overlaps.sort((a, b) => a.start - b.start); // Ensure sorted
+                 let currentMerged = { ...overlaps[0] };
                  for (let i = 1; i < overlaps.length; i++) {
                      const nextBlock = overlaps[i];
-                     // If next block starts exactly when current ends, merge
-                     if (nextBlock.start.getTime() === currentMerged.end.getTime()) {
-                         currentMerged.end = nextBlock.end;
+                     // Merge if next starts exactly or before current ends (handles potential overlaps from findOverlaps)
+                     if (nextBlock.start.getTime() <= currentMerged.end.getTime()) {
+                          // Extend the end time if the next block ends later
+                         if (nextBlock.end > currentMerged.end) {
+                             currentMerged.end = nextBlock.end;
+                         }
                      } else {
-                         // Discontinuity, push the merged block and start a new one
                          mergedOverlaps.push(currentMerged);
                          currentMerged = { ...nextBlock };
                      }
                  }
-                 mergedOverlaps.push(currentMerged); // Push the last merged block
+                 mergedOverlaps.push(currentMerged); // Add the last block
              }
-
-
             const lines = mergedOverlaps.map(block => formatBlock(block));
             mergeResultDiv.textContent = lines.join('\n');
         }
 
 
-        // --- 実行 (Run) ---
+        // --- 実行 ---
         initialize();
 
     </script>
